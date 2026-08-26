@@ -1,6 +1,6 @@
 # @ddtcorex/dsh-maestro-govard
 
-Thin DeepSeek Harness bridge for [Govard](../..//govard) — exposes Govard workspace/project
+Thin DeepSeek Harness bridge for [Govard](https://github.com/ddtcorex/govard) — exposes Govard workspace/project
 tooling to DSH sessions as registered tools. The Govard engine itself is a separate Go
 codebase and binary; this package only bridges, it does not embed Go code.
 
