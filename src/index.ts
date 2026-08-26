@@ -1,9 +1,5 @@
-import * as GovardTool from './govard-tool.js';
-import * as WorkspaceTool from './workspace-tool.js';
-export default {
-  inject: ['tools'] as const,
-  apply(ctx: any) {
-    ctx.effect(() => ctx.tools.register((GovardTool as any).create ? (GovardTool as any).create() : { name: 'govard' }));
-    ctx.effect(() => ctx.tools.register((WorkspaceTool as any).create ? (WorkspaceTool as any).create() : { name: 'workspace' }));
-  }
-};
+// Library surface only. The Cordis rows live in cordis.patch.yml and target
+// the two entry modules directly (govard-tool / workspace-tool); registering
+// placeholder tools from here crashed the loader with "must declare output".
+export * as GovardTool from './govard-tool.js';
+export * as WorkspaceTool from './workspace-tool.js';

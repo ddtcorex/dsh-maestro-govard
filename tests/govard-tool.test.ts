@@ -69,18 +69,14 @@ describe('govard-tool', () => {
     expect(yml).toContain('@ddtcorex/dsh-maestro-govard');
   });
 
-  it('src/index.ts registers tools via ctx.effect', async () => {
-    let src = '';
-    for (const c of ['packages/dsh-maestro-govard/src/index.ts', 'src/index.ts']) {
-      if (existsSync(resolve(c))) { src = readFileSync(resolve(c), 'utf8'); break; }
-    }
-    if (!src) {
-      try { src = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8'); } catch {}
-    }
-    expect(src).toContain('ctx.effect');
-    expect(src).toContain('ctx.tools.register');
-    expect(src).toContain('GovardTool');
-    expect(src).toContain('WorkspaceTool');
+  it('tool entry modules register via ctx.effect; the root wrapper does not register at all', async () => {
+    const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
+    // The rows load these two entries — every registration must be reversible.
+    expect(read('../src/govard-tool.ts')).toContain('ctx.effect');
+    expect(read('../src/workspace-tool.ts')).toContain('ctx.effect');
+    // The package root is a library surface only: registering placeholder
+    // tools here crashed the loader ("must declare output").
+    expect(read('../src/index.ts')).not.toContain('ctx.tools.register');
   });
 
   it('package.json has correct name, version, and dsh.bundle.patch', () => {
@@ -98,3 +94,13 @@ describe('govard-tool', () => {
     expect(j.peerDependencies['@deepseek-ai/cordis']).toBe('^4.0.1');
   });
 });
+
+describe('cordis.patch.yml row wiring', () => {
+  it('targets the two tool entry modules directly (not the package root)', async () => {
+    const { readFileSync } = await import('node:fs')
+    const yml = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
+    expect(yml).toContain("name: '@ddtcorex/dsh-maestro-govard/lib/govard-tool.js'")
+    expect(yml).toContain("name: '@ddtcorex/dsh-maestro-govard/lib/workspace-tool.js'")
+    expect(yml).not.toContain("name: '@ddtcorex/dsh-maestro-govard'\n")
+  })
+})

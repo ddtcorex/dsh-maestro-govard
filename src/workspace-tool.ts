@@ -50,7 +50,7 @@ async function resolveInRoot(rootPath: string, requestedPath: string): Promise<s
 export function apply(ctx: Context, config: Config = {}): void {
   const rootPath = config.rootPath ?? process.cwd()
 
-  ctx.tools.register(defineTool({
+  ctx.effect(() => ctx.tools.register(defineTool({
     name: 'maestro_read_file',
     description: 'Read a text file relative to the current workspace root.',
     parameters: {
@@ -66,9 +66,9 @@ export function apply(ctx: Context, config: Config = {}): void {
       const text = await readFile(target, 'utf-8')
       return { text }
     },
-  }))
+  })))
 
-  ctx.tools.register(defineTool({
+  ctx.effect(() => ctx.tools.register(defineTool({
     name: 'maestro_write_file',
     description: 'Write a text file relative to the current workspace root, creating parent directories as needed.',
     parameters: {
@@ -86,5 +86,5 @@ export function apply(ctx: Context, config: Config = {}): void {
       await writeFile(target, args.content, 'utf-8')
       return { written: true }
     },
-  }))
+  })))
 }
