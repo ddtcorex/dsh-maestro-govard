@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Maestro Govard bridge — thin DSH bridge for govard + workspace tools (Go stays separate)",
   "private": false,
+  "packageManager": "pnpm@11.7.0",
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
