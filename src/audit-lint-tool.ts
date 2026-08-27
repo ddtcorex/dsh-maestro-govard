@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { resolve, sep } from 'node:path'
+import { basename, dirname, resolve, sep } from 'node:path'
 import { realpath } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -18,7 +18,32 @@ function workspaceRootFor(c:string|undefined, e:unknown):string{
 async function isInsideRoot(r:string,t:string):Promise<boolean>{
   const ar=resolve(r); const rs=resolve(ar,t)
   if(rs!==ar && !rs.startsWith(ar+sep)) return false
-  try{ const rr=await realpath(ar); const rt=await realpath(rs); return rt===rr||rt.startsWith(rr+sep)}catch{return false}
+  let realRoot:string
+  try{ realRoot=await realpath(ar) }catch{
+    return true
+  }
+  let existing=rs
+  const pending:string[]=[]
+  while(true){
+    let real:string
+    try{ real=await realpath(existing) }catch(err){
+      if((err as NodeJS.ErrnoException).code!=='ENOENT') return false
+      const parent=dirname(existing)
+      if(parent===existing) return false
+      pending.unshift(basename(existing))
+      existing=parent
+      continue
+    }
+    const realTarget=pending.length>0 ? resolve(real, ...pending) : real
+    if(realTarget!==realRoot && !realTarget.startsWith(realRoot+sep)) return false
+    return true
+  }
+}
+export function cleanJson(raw:string):string{
+  // strip trailing ERROR line outside JSON (2.8MB large audit case, sed '$d' before jq)
+  // govard prints JSON then "  ERROR audit run <id> reported failed checks" on last line
+  // Handles both newline-prefixed and same-line suffix
+  return raw.replace(/\n\s*ERROR audit run.*$/s, '').replace(/\s{2,}ERROR audit run.*$/s, '').trimEnd()
 }
 const DEFAULT_TIMEOUT=120000
 
@@ -81,10 +106,22 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
       if(result.code===null && result.stderr.includes('ENOENT')){
         return {ok:false, exitCode:null, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'govard_not_found', message:'govard binary not found'}], diagnostics:result.stderr.slice(0,4000)} as never
       }
+      // clean JSON: strip trailing ERROR outside JSON (large audit 2.8MB case, sed '$d' before jq)
+      const cleaned=cleanJson(result.stdout)
       let parsed:any=null
-      try{ parsed=JSON.parse(result.stdout) }catch{ parsed=null }
+      try{ parsed=JSON.parse(cleaned) }catch{ parsed=null }
       if(!parsed){
-        return {ok:false, exitCode:result.code, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'parse_error', message:'stdout not JSON'}], diagnostics:(result.stdout+result.stderr).slice(0,4000)} as never
+        // fallback: try sed '$d' style — drop last line and retry
+        const fallback=cleaned.split('\n').slice(0,-1).join('\n').trimEnd()
+        try{ parsed=JSON.parse(fallback) }catch{}
+        if(!parsed) {
+          // also try raw stdout without cleaning as last resort diagnostics
+          const tryStderr=cleanJson(result.stdout+result.stderr)
+          try{ parsed=JSON.parse(tryStderr) }catch{}
+        }
+      }
+      if(!parsed){
+        return {ok:false, exitCode:result.code, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'parse_error', message:'stdout not JSON'}], diagnostics:(cleaned+result.stderr).slice(0,4000)} as never
       }
       const findings:Array<any>=parsed.findings ?? parsed.evidence?.php_results?.flatMap((r:any)=>r.findings) ?? []
       // split

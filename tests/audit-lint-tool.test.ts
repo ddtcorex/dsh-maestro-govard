@@ -33,4 +33,18 @@ describe('govard_audit_lint', ()=>{
     expect(res.ok).toBe(false)
     expect(Array.isArray(res.errors)).toBe(true)
   })
+  it('cleanJson strips trailing ERROR outside JSON', async ()=>{
+    const {cleanJson}=await import('../src/audit-lint-tool.js')
+    const raw = `{"status":"failed"}  ERROR audit run 20260827T000425Z reported failed checks`
+    expect(cleanJson(raw)).toEqual(`{"status":"failed"}`)
+  })
+  it('cleanJson strips trailing ERROR with newline', async ()=>{
+    const {cleanJson}=await import('../src/audit-lint-tool.js')
+    const raw = `{"status":"failed"}\n  ERROR audit run 20260827T000425Z reported failed checks`
+    expect(cleanJson(raw)).toEqual(`{"status":"failed"}`)
+  })
+  it('cleanJson preserves valid JSON', async ()=>{
+    const {cleanJson}=await import('../src/audit-lint-tool.js')
+    expect(cleanJson(`{"ok":true}`)).toEqual(`{"ok":true}`)
+  })
 })
