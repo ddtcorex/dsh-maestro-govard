@@ -30,6 +30,7 @@ pnpm build    # tsc  -> lib/
 - Default branch `master`. No direct commits to `master` — use `feat/<topic>` / `fix/<topic>` and a PR.
 - Conventional commits, imperative mood (`feat(govard): ...`, `fix(govard): ...`).
 - One TDD task = one commit; never commit while `pnpm verify` is red.
+- **Always request approval before merge or release:** never merge a PR/MR or publish a release (`git tag`/`pnpm publish`/`gh release`) without an explicit human approval — request review (`gh pr ready` / `gh pr request-review` / ask in chat) and wait for `APPROVED`. This applies to every `master`/`main` merge and every `vX.Y.Z` tag.
 
 ## Conventions
 
