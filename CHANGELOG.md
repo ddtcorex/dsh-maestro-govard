@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-09-02
+
+### Changed
+
+- Bump @deepseek-ai/* to 0.1.2-alpha.2, cordis 4.0.2 (#12), bump dsh-maestro-ci pin (#11).
+
+### Fixed
+
+- Complete public checklist — CHANGELOG, approval gate, host contract (#10).
+
+
 ## [0.1.0] - 2026-08-28
 
 Initial release of `@ddtcorex/dsh-maestro-govard`, a thin DeepSeek Harness bridge

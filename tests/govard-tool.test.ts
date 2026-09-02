@@ -89,7 +89,7 @@ describe('govard-tool', () => {
     }
     const j = JSON.parse(pkg);
     expect(j.name).toBe('@ddtcorex/dsh-maestro-govard');
-    expect(j.version).toBe('0.1.0');
+    expect(j.version).toBe('0.1.1');
     expect(j.dsh.bundle.patch).toBe('./cordis.patch.yml');
     expect(j.peerDependencies['@deepseek-ai/cordis']).toBe('^4.0.1');
   });
