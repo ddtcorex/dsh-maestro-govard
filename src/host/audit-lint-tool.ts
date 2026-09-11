@@ -60,6 +60,23 @@ function run(cmd:string, args:string[], cwd:string, timeoutMs:number):Promise<{c
   })
 }
 
+// auditErrorResult is the schema-compliant shape every failure path returns.
+// Returning a bare {text} here tripped the declared output contract and the
+// harness rejected the result instead of showing the diagnostics.
+export function auditErrorResult(worktreePath:string, code:number|null, options:{errors:Array<Record<string,unknown>>, diagnostics?:string|null, rawJson?:Record<string,unknown>}={errors:[]}){
+  return {
+    ok:false,
+    exitCode:code ?? -1,
+    timedOut:false,
+    worktreePath,
+    lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}},
+    summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false},
+    rawJson:options.rawJson ?? {},
+    errors:options.errors,
+    diagnostics:options.diagnostics ?? '',
+  }
+}
+
 // auditChecksArg resolves the requested check selection, defaulting to the
 // container-backed lint check the tool has always run.
 export function auditChecksArg(raw: unknown): string[] {
@@ -94,12 +111,17 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
         type:'object', additionalProperties:false,
         properties:{
           ok:{type:'boolean', required:true},
+          // -1 means "no exit code available" (for example the binary was not found).
           exitCode:{type:'number', required:true},
           timedOut:{type:'boolean', required:true},
           worktreePath:{type:'string', required:true},
           lint:{type:'object', required:true, additionalProperties:true},
           summary:{type:'object', required:true, additionalProperties:true},
+          // No-parsed-payload branches report {} rather than null so the declared
+          // shape holds on every path.
           rawJson:{type:'object', required:true, additionalProperties:true},
+          errors:{type:'array', items:{type:'object', additionalProperties:true}, required:true},
+          diagnostics:{type:'string'},
         }
       },
       render:(_a,v:{ok:boolean})=>[{type:'text', text: v.ok? 'audit lint passed':'audit lint failed'}],
@@ -109,17 +131,17 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
       const root=workspaceRootFor(configuredRoot, exec)
       const worktreePath= rawPath ? resolve(root, rawPath) : root
       const checkPath= rawPath ?? ''
-      if(checkPath!=='' && !(await isInsideRoot(root, checkPath))) return {text:`Path "${checkPath}" escapes the workspace root.`, truncated:false} as never
+      if(checkPath!=='' && !(await isInsideRoot(root, checkPath))) return auditErrorResult(worktreePath, null, {errors:[{code:'path_escapes_root', message:`Path "${checkPath}" escapes the workspace root.`}]}) as never
       const timeoutMs=(args as {timeoutMs?:number}).timeoutMs ?? defaultTimeout
-      if(timeoutMs<5000 || timeoutMs>300000) return {text:'timeoutMs out of range 5000-300000', truncated:false} as never
+      if(timeoutMs<5000 || timeoutMs>300000) return auditErrorResult(worktreePath, null, {errors:[{code:'timeout_out_of_range', message:'timeoutMs out of range 5000-300000'}]}) as never
 
       const cliArgs=auditCliArgs(auditChecksArg((args as {checks?:string[]}).checks))
       const result=await run('govard', cliArgs, worktreePath, timeoutMs)
       if(result.timedOut){
-        return {ok:false, exitCode:result.code, timedOut:true, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'timeout', message:`timed out after ${timeoutMs}ms` }], diagnostics:result.stderr.slice(0,4000)} as never
+        return {ok:false, exitCode:result.code ?? -1, timedOut:true, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:{}, errors:[{code:'timeout', message:`timed out after ${timeoutMs}ms` }], diagnostics:result.stderr.slice(0,4000)} as never
       }
       if(result.code===null && result.stderr.includes('ENOENT')){
-        return {ok:false, exitCode:null, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'govard_not_found', message:'govard binary not found'}], diagnostics:result.stderr.slice(0,4000)} as never
+        return {ok:false, exitCode:-1, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:{}, errors:[{code:'govard_not_found', message:'govard binary not found'}], diagnostics:result.stderr.slice(0,4000)} as never
       }
       // clean JSON: strip trailing ERROR outside JSON (large audit 2.8MB case, sed '$d' before jq)
       const cleaned=cleanJson(result.stdout)
@@ -136,13 +158,13 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
         }
       }
       if(!parsed){
-        return {ok:false, exitCode:result.code, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'parse_error', message:'stdout not JSON'}], diagnostics:(cleaned+result.stderr).slice(0,4000)} as never
+        return {ok:false, exitCode:result.code ?? -1, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:{}, errors:[{code:'parse_error', message:'stdout not JSON'}], diagnostics:(cleaned+result.stderr).slice(0,4000)} as never
       }
       // The error envelope reports a missing capability (exit 3) as a typed code
       // rather than a parse failure.
       if(parsed.schema_version===1 && parsed.ok===false){
         const envelope=parsed.error ?? {}
-        return {ok:false, exitCode:result.code, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:parsed, errors:[{code:envelope.code ?? 'error', message:envelope.message ?? 'govard audit failed', hint:envelope.hint, capability:envelope.capability}], diagnostics:result.stderr.slice(0,4000)} as never
+        return {ok:false, exitCode:result.code ?? -1, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:parsed, errors:[{code:envelope.code ?? 'error', message:envelope.message ?? 'govard audit failed', hint:envelope.hint, capability:envelope.capability}], diagnostics:result.stderr.slice(0,4000)} as never
       }
       const findings:Array<any>=parsed.findings ?? parsed.evidence?.php_results?.flatMap((r:any)=>r.findings) ?? []
       // split
@@ -161,7 +183,7 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
       const findingCount=findings.length
       return {
         ok: result.code===0,
-        exitCode: result.code,
+        exitCode: result.code ?? -1,
         timedOut:false,
         worktreePath,
         sessionId: parsed.session_id ?? parsed.sessionId ?? null,
