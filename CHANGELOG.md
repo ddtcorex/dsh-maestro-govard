@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-11
+
+### Added
+
+- `govard_audit_lint` forwards a `checks` selection (default `lint`) and asks the
+  CLI for `--error-json`, so a capability failure arrives as typed evidence
+  (`code`, `message`, `hint`, `capability`) instead of an unparsed stderr line.
+  Container-free analysis is reachable from DSH as `checks: ["integrity"]`. (#14)
+
+### Fixed
+
+- Every failure path returns the declared output schema: `errors` and
+  `diagnostics` are declared and `rawJson` is always an object, so the harness no
+  longer rejects the result with "returned invalid output" in exactly the cases
+  the capability contract exists for. (#15)
+- Removed the dead duplicate source tree under `src/` that the build never
+  compiled while the test suite imported it; `AGENTS.md` now documents the real
+  `src/host/**` layout. (#14)
+
 ## [0.1.1] - 2026-09-02
 
 ### Changed
