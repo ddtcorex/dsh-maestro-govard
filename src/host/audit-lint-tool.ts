@@ -65,7 +65,7 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
   const defaultTimeout=config.timeoutMs ?? DEFAULT_TIMEOUT
   ctx.effect(()=>ctx.tools.register(defineTool({
     name:'govard_audit_lint',
-    description:'Run govard audit --checks lint --format json and return structured phpcs/phpstan results. Use before hand-parsing text.',
+    description:'Run govard audit --format json and return structured results. Defaults to --checks lint (phpcs/phpstan in a container); pass checks:["integrity"] for container-free analysis (composer manifest/lock and Magento module/DI findings). Use before hand-parsing text.',
     parameters:{
       worktreePath:{type:'string'},
       checks:{type:'array', items:{type:'string'}},
@@ -98,7 +98,11 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
       const timeoutMs=(args as {timeoutMs?:number}).timeoutMs ?? defaultTimeout
       if(timeoutMs<5000 || timeoutMs>300000) return {text:'timeoutMs out of range 5000-300000', truncated:false} as never
 
-      const cliArgs=['audit','run','--checks','lint','--format','json']
+      const requestedChecks=(args as {checks?:string[]}).checks?.filter((check:string)=>String(check).trim()!=='') ?? []
+      const checks=requestedChecks.length>0 ? requestedChecks : ['lint']
+      // --error-json keeps a capability failure machine-readable instead of
+      // leaving it in stderr for the caller to parse.
+      const cliArgs=['audit','run','--checks',checks.join(','),'--format','json','--error-json']
       const result=await run('govard', cliArgs, worktreePath, timeoutMs)
       if(result.timedOut){
         return {ok:false, exitCode:result.code, timedOut:true, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'timeout', message:`timed out after ${timeoutMs}ms` }], diagnostics:result.stderr.slice(0,4000)} as never
@@ -122,6 +126,12 @@ export function apply(ctx:Context, config:{rootPath?:string, timeoutMs?:number}=
       }
       if(!parsed){
         return {ok:false, exitCode:result.code, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:null, errors:[{code:'parse_error', message:'stdout not JSON'}], diagnostics:(cleaned+result.stderr).slice(0,4000)} as never
+      }
+      // The error envelope reports a missing capability (exit 3) as a typed code
+      // rather than a parse failure.
+      if(parsed.schema_version===1 && parsed.ok===false){
+        const envelope=parsed.error ?? {}
+        return {ok:false, exitCode:result.code, timedOut:false, worktreePath, lint:{phpcs:{violations:[]}, phpstan:{errors:[]}, pubMediaGuard:{violations:[]}}, summary:{status:null, phpVersions:[], matrixComplete:false, findingCount:0, truncated:false}, rawJson:parsed, errors:[{code:envelope.code ?? 'error', message:envelope.message ?? 'govard audit failed', hint:envelope.hint, capability:envelope.capability}], diagnostics:result.stderr.slice(0,4000)} as never
       }
       const findings:Array<any>=parsed.findings ?? parsed.evidence?.php_results?.flatMap((r:any)=>r.findings) ?? []
       // split

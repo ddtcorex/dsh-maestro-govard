@@ -89,7 +89,9 @@ describe('govard-tool', () => {
     }
     const j = JSON.parse(pkg);
     expect(j.name).toBe('@ddtcorex/dsh-maestro-govard');
-    expect(j.version).toBe('0.1.1');
+    // Shape, not a literal: a hardcoded version has to be edited on every
+    // release and then silently asserts the wrong thing when it is forgotten.
+    expect(String(j.version)).toMatch(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
     expect(j.dsh.bundle.patch).toBe('./cordis.patch.yml');
     expect(j.peerDependencies['@deepseek-ai/cordis']).toBe('^4.0.1');
   });
