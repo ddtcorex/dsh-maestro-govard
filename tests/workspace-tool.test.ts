@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { apply } from '../src/workspace-tool.js';
+import { apply } from '../src/host/workspace-tool.js';
 
 interface RegisteredDef {
   name: string

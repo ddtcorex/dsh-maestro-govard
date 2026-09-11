@@ -12,12 +12,12 @@ function exec(cwd:string):unknown{ return {callId:'c', name:'govard_audit_lint',
 
 describe('govard_audit_lint', ()=>{
   it('registers tool govard_audit_lint', async ()=>{
-    const {apply}=await import('../src/audit-lint-tool.js')
+    const {apply}=await import('../src/host/audit-lint-tool.js')
     const {r,ctx}=cap(); apply(ctx as never,{})
     expect(r[0].name).toBe('govard_audit_lint')
   })
   it('rejects worktreePath escaping root', async ()=>{
-    const {apply}=await import('../src/audit-lint-tool.js')
+    const {apply}=await import('../src/host/audit-lint-tool.js')
     const {r,ctx}=cap(); apply(ctx as never,{})
     const root=await tempDir()
     const res=await r[0].execute({worktreePath:'../../etc'}, exec(root)) as {text?:string}
@@ -25,7 +25,7 @@ describe('govard_audit_lint', ()=>{
     expect(txt.toLowerCase()).toContain('escapes')
   })
   it('handles missing govard binary gracefully (govard_not_found)', async ()=>{
-    const {apply}=await import('../src/audit-lint-tool.js')
+    const {apply}=await import('../src/host/audit-lint-tool.js')
     const {r,ctx}=cap(); apply(ctx as never,{})
     const root=await tempDir()
     const res=await r[0].execute({worktreePath: root, timeoutMs:5000}, exec(root)) as {ok:boolean, errors:Array<{code:string}>}
@@ -33,18 +33,37 @@ describe('govard_audit_lint', ()=>{
     expect(res.ok).toBe(false)
     expect(Array.isArray(res.errors)).toBe(true)
   })
+
+  it('defaults the check selection to lint', async ()=>{
+    const {auditChecksArg}=await import('../src/host/audit-lint-tool.js')
+    expect(auditChecksArg(undefined)).toEqual(['lint'])
+    expect(auditChecksArg([])).toEqual(['lint'])
+    expect(auditChecksArg(['  '])).toEqual(['lint'])
+  })
+  it('forwards an explicit check selection such as integrity', async ()=>{
+    const {auditChecksArg}=await import('../src/host/audit-lint-tool.js')
+    expect(auditChecksArg(['integrity'])).toEqual(['integrity'])
+    expect(auditChecksArg(['lint','integrity'])).toEqual(['lint','integrity'])
+  })
+  it('requests the machine-readable error envelope', async ()=>{
+    const {auditCliArgs}=await import('../src/host/audit-lint-tool.js')
+    const args=auditCliArgs(['integrity'])
+    expect(args).toContain('--error-json')
+    expect(args[args.indexOf('--checks')+1]).toBe('integrity')
+  })
+
   it('cleanJson strips trailing ERROR outside JSON', async ()=>{
-    const {cleanJson}=await import('../src/audit-lint-tool.js')
+    const {cleanJson}=await import('../src/host/audit-lint-tool.js')
     const raw = `{"status":"failed"}  ERROR audit run 20260827T000425Z reported failed checks`
     expect(cleanJson(raw)).toEqual(`{"status":"failed"}`)
   })
   it('cleanJson strips trailing ERROR with newline', async ()=>{
-    const {cleanJson}=await import('../src/audit-lint-tool.js')
+    const {cleanJson}=await import('../src/host/audit-lint-tool.js')
     const raw = `{"status":"failed"}\n  ERROR audit run 20260827T000425Z reported failed checks`
     expect(cleanJson(raw)).toEqual(`{"status":"failed"}`)
   })
   it('cleanJson preserves valid JSON', async ()=>{
-    const {cleanJson}=await import('../src/audit-lint-tool.js')
+    const {cleanJson}=await import('../src/host/audit-lint-tool.js')
     expect(cleanJson(`{"ok":true}`)).toEqual(`{"ok":true}`)
   })
 })
