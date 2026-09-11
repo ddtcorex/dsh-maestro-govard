@@ -12,10 +12,16 @@ Part of the Maestro Harness suite. Host-only — the actual Govard logic lives i
 
 ## Layout
 
-- `src/index.ts` — host `apply()`: registers the govard tools + RPC.
-- `src/govard-tool.ts` — the `govard` tool (invokes the govard CLI, forwards env/up/sync/etc.).
-- `src/workspace-tool.ts` — workspace helper tool.
-- `tests/govard-tool.test.ts` — vitest suite.
+`tsconfig.json` builds `src/host/**` (rootDir `src/host`) to a flat `lib/`, which
+is what `cordis.patch.yml` and the package `files` list reference. Sources live
+there and nowhere else — a duplicate tree under `src/` was removed because edits
+to it compiled to nothing and the vitest suite was asserting against it.
+
+- `src/host/index.ts` — library surface re-exporting the tool modules.
+- `src/host/govard-tool.ts` — container tools: `govard_env_up`, `govard_shell`, `govard_env_down`.
+- `src/host/audit-lint-tool.ts` — `govard_audit_lint` (lint by default, `checks:["integrity"]` for container-free analysis).
+- `src/host/workspace-tool.ts` — workspace file helpers.
+- `tests/*.test.ts` — vitest suite, importing `../src/host/*.js`.
 
 ## Development
 

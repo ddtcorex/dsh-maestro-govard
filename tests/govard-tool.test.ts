@@ -31,13 +31,13 @@ describe('govard-tool', () => {
       if (existsSync(c)) { content = readFileSync(c, 'utf8'); break; }
     }
     if (!content) {
-      try { content = readFileSync(new URL('../src/govard-tool.ts', import.meta.url), 'utf8'); } catch {}
+      try { content = readFileSync(new URL('../src/host/govard-tool.ts', import.meta.url), 'utf8'); } catch {}
     }
     expect(content).toContain('maestro-govard-tool');
     expect(content).toContain("export const name = 'maestro-govard-tool'");
     // also try dynamic import if deps available (non-fatal)
     try {
-      const mod = await import('../src/govard-tool.js');
+      const mod = await import('../src/host/govard-tool.js');
       expect(mod.name).toBe('maestro-govard-tool');
     } catch (e) {
       // fallback to content check already passed
@@ -50,11 +50,11 @@ describe('govard-tool', () => {
       if (existsSync(resolve(c))) { content = readFileSync(resolve(c), 'utf8'); break; }
     }
     if (!content) {
-      try { content = readFileSync(new URL('../src/workspace-tool.ts', import.meta.url), 'utf8'); } catch {}
+      try { content = readFileSync(new URL('../src/host/workspace-tool.ts', import.meta.url), 'utf8'); } catch {}
     }
     expect(content).toContain('maestro-workspace-tool');
     try {
-      const mod = await import('../src/workspace-tool.js');
+      const mod = await import('../src/host/workspace-tool.js');
       expect(mod.name).toBe('maestro-workspace-tool');
     } catch {}
   });
@@ -72,11 +72,11 @@ describe('govard-tool', () => {
   it('tool entry modules register via ctx.effect; the root wrapper does not register at all', async () => {
     const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
     // The rows load these two entries — every registration must be reversible.
-    expect(read('../src/govard-tool.ts')).toContain('ctx.effect');
-    expect(read('../src/workspace-tool.ts')).toContain('ctx.effect');
+    expect(read('../src/host/govard-tool.ts')).toContain('ctx.effect');
+    expect(read('../src/host/workspace-tool.ts')).toContain('ctx.effect');
     // The package root is a library surface only: registering placeholder
     // tools here crashed the loader ("must declare output").
-    expect(read('../src/index.ts')).not.toContain('ctx.tools.register');
+    expect(read('../src/host/index.ts')).not.toContain('ctx.tools.register');
   });
 
   it('package.json has correct name, version, and dsh.bundle.patch', () => {
@@ -89,7 +89,9 @@ describe('govard-tool', () => {
     }
     const j = JSON.parse(pkg);
     expect(j.name).toBe('@ddtcorex/dsh-maestro-govard');
-    expect(j.version).toBe('0.1.1');
+    // Shape, not a literal: a hardcoded version has to be edited on every
+    // release and then silently asserts the wrong thing when it is forgotten.
+    expect(String(j.version)).toMatch(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
     expect(j.dsh.bundle.patch).toBe('./cordis.patch.yml');
     expect(j.peerDependencies['@deepseek-ai/cordis']).toBe('^4.0.1');
   });

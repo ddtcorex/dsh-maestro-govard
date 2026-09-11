@@ -47,6 +47,12 @@ function run(command: string, args: string[], cwd: string, timeoutMs: number): P
 }
 
 function textResult(result: RunResult, successText: string): { text: string } {
+  if (result.code === 3) {
+    // Container-only tool: Govard declared docker as a required capability.
+    throw new Error(
+      'Docker is not available on this host (CAPABILITY_MISSING). Start Docker and retry, or use govard capabilities to list the commands that need no container runtime.',
+    )
+  }
   if (result.code !== 0) {
     throw new Error(`Exit ${result.code}: ${result.stderr || result.stdout}`)
   }
