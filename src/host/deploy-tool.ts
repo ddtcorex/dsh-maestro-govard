@@ -74,15 +74,9 @@ function failed(result: RunResult): Error {
  * shows them: the remote is positional, and `--build` is always explicit so the
  * plan a session reads is the plan the deploy would run.
  *
- * `--json` is deliberately not passed: `govard deploy plan` accepts the flag but
- * its printer never reads it (measured against 1.72.0-18-ga9dcca5 — the text
- * tree comes back either way), and a bridge that offered it would be advertising
- * an output format the command does not produce.
- *
- * The plan prints each step's implementation or the reason it is skipped, and
- * the source of a hook; it does not print `RunOn`, so a hook declared
- * `run_on: local` looks like a remote one. That is a property of the command's
- * output, not something this bridge can add.
+ * `--json` is not a parameter and is not added here: the plan asks for the
+ * document itself (see the plan tool), because there is no useful choice between
+ * the two shapes for a session and the human tree is what the terminal is for.
  */
 function deployArgv(subcommand: string, args: Record<string, unknown>): string[] {
   const argv = ['deploy', subcommand]
@@ -102,9 +96,9 @@ export function apply(ctx: Context, config: Config): void {
   ctx.tools.register(defineTool({
     name: 'govard_deploy_plan',
     description:
-      'Show the resolved Govard deploy plan for one remote — every task in order with what it runs (or why this build '
-      + 'mode skips it), and the source of each hook — without connecting to the target. Read-only: nothing is executed '
-      + 'and the host needs no ssh, rsync or Docker.',
+      'Show the resolved Govard deploy plan for one remote as its machine-readable document — every task in order with '
+      + 'what it runs (or why this build mode skips it), where it runs, and the source of each hook — without connecting '
+      + 'to the target. Read-only: nothing is executed and the host needs no ssh, rsync or Docker.',
     parameters: {
       remote: { type: 'string', required: true, description: 'Remote from .govard.yml, e.g. "production". Required: govard resolves no default remote.' },
       build: { type: 'string', enum: ['auto', 'server', 'artifact'], description: 'Where the build runs: auto (default), server or artifact.' },
@@ -115,7 +109,11 @@ export function apply(ctx: Context, config: Config): void {
       render: (_args, value) => [{ type: 'text', text: value.text }],
     },
     async execute(args) {
-      const result = await run('govard', deployArgv('plan', args), rootPath, timeoutMs)
+      // The document, not the human tree: `kind: "plan"` plus one entry per step
+      // with `implementation`, `command`, `skipped`, `skip_reason` and `run_on`.
+      // A govard older than the plan-JSON change accepts the flag and ignores it
+      // (it was registered before it was read), so this is safe on both.
+      const result = await run('govard', [...deployArgv('plan', args), '--json'], rootPath, timeoutMs)
       if (result.code !== 0) throw failed(result)
       return succeeded(result, 'The plan is empty: nothing to print.')
     },

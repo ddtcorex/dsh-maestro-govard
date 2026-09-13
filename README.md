@@ -11,9 +11,9 @@ Part of the Maestro Harness suite (`dsh-maestro-*`). Cordis patch row id: `dsh-m
 
 - Tool registrations that shell out to the `govard` binary (environment up/down, commands in
   container, DB dumps/imports, debug configuration) with schemastery-typed parameters.
-- Read-only deploy inspection: `govard_deploy_plan` (the resolved pipeline for a remote, no
-  connection needed) and `govard_deploy_check` (the preflight against a target). The mutating
-  deploy commands stay in the terminal.
+- Read-only deploy inspection: `govard_deploy_plan` (the resolved pipeline for a remote as its
+  machine-readable `kind: "plan"` document, no connection needed) and `govard_deploy_check`
+  (the preflight against a target). The mutating deploy commands stay in the terminal.
 - Workspace path resolution consistent with the rest of the Maestro suite.
 
 ## Install

@@ -20,7 +20,7 @@ to it compiled to nothing and the vitest suite was asserting against it.
 - `src/host/index.ts` — library surface re-exporting the tool modules.
 - `src/host/govard-tool.ts` — container tools: `govard_env_up`, `govard_shell`, `govard_env_down`.
 - `src/host/audit-lint-tool.ts` — `govard_audit_lint` (lint by default, `checks:["integrity"]` for container-free analysis).
-- `src/host/deploy-tool.ts` — read-only deploy inspection: `govard_deploy_plan` and `govard_deploy_check`. The mutating deploy subcommands (`deploy`, `rollback`, `sandbox *`) are deliberately not exposed; a tool that changes a target needs its own confirmation protocol first.
+- `src/host/deploy-tool.ts` — read-only deploy inspection: `govard_deploy_plan` (the `kind: "plan"` document) and `govard_deploy_check`. The mutating deploy subcommands (`deploy`, `rollback`, `sandbox *`) are deliberately not exposed; a tool that changes a target needs its own confirmation protocol first.
 - `src/host/workspace-tool.ts` — workspace file helpers.
 - `tests/*.test.ts` — vitest suite, importing `../src/host/*.js`.
 
