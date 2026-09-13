@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-14
+
+### Fixed
+
+- The deploy tools run against the project the session is working in. Both
+  spawned govard in the bridge's own directory — wherever `dsh web` was started,
+  which on a machine with several checkouts is a different Govard project — so a
+  plan for a real project came back as `unknown remote "…"; configured remotes:
+  (none)`. They now resolve `projectPath`, then the configured root, then the
+  session's cwd, then the process cwd, exactly as `govard_audit_lint` already
+  resolves its worktree, and refuse a directory outside any Govard project before
+  spawning anything. (#20)
+
 ## [0.3.0] - 2026-09-14
 
 ### Added
