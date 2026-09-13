@@ -1,6 +1,6 @@
 {
   "name": "@ddtcorex/dsh-maestro-govard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Maestro Govard bridge — thin DSH bridge for govard + workspace tools (Go stays separate)",
   "homepage": "https://github.com/ddtcorex/dsh-maestro-govard",
   "private": false,

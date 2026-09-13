@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-14
+
+### Added
+
+- `govard_deploy_plan` and `govard_deploy_check` — the read-only half of the
+  deploy pipeline: the resolved plan for one remote (no ssh, no rsync and no
+  Docker) and the preflight against a target (ssh, changes nothing). The
+  mutating subcommands stay in the terminal, where an operator sees the window
+  and the prompt. (#17)
+
+### Changed
+
+- `govard_deploy_plan` asks for the `kind: "plan"` document govard introduced,
+  so a session reads the same shape a pipeline does — including `run_on`, which
+  the human tree does not print. Passing the flag is safe on older binaries too:
+  govard registered it on the command before it read it. (#18)
+
 ## [0.2.0] - 2026-09-11
 
 ### Added
