@@ -104,7 +104,7 @@ describe('govard_deploy_plan argv', () => {
     installStub('echo "plan"');
     const registered = await tools();
     const result = await registered.get('govard_deploy_plan')!.execute({ remote: 'production' });
-    expect(calls()).toEqual(['deploy plan production --build auto']);
+    expect(calls()).toEqual(['deploy plan production --build auto --json']);
     // stdout is handed over verbatim, newline included — the bridge does not
     // reformat what the CLI printed.
     expect(result.text.trim()).toBe('plan');
@@ -118,14 +118,19 @@ describe('govard_deploy_plan argv', () => {
       build: 'artifact',
       artifactDir: 'artifacts',
     });
-    expect(calls()).toEqual(['deploy plan production --build artifact --artifact-dir artifacts']);
+    expect(calls()).toEqual(['deploy plan production --build artifact --artifact-dir artifacts --json']);
   });
 
-  it('offers no --json, because `deploy plan` accepts but ignores it', async () => {
-    // Measured against govard 1.72.0-18-ga9dcca5: the plan printer never reads
-    // the flag, so the text tree comes back either way. Advertising it would
-    // promise an output format the command does not produce.
+  it('always asks for the machine-readable plan', async () => {
+    // govard 1.72.0-18-ga9dcca5 registered --json on `deploy plan` and never read
+    // it, so the bridge deliberately did not pass it. The command now emits a
+    // `kind: "plan"` document, and a session gets the same shape a pipeline does.
+    // It is not a parameter: there is no useful choice between the two, and the
+    // human tree is what the terminal is for.
+    installStub('echo "{}"');
     const registered = await tools();
+    await registered.get('govard_deploy_plan')!.execute({ remote: 'production' });
+    expect(calls()).toEqual(['deploy plan production --build auto --json']);
     expect(registered.get('govard_deploy_plan')!.parameters.properties).not.toHaveProperty('json');
   });
 
