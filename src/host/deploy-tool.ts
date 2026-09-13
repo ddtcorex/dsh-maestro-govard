@@ -78,6 +78,11 @@ function failed(result: RunResult): Error {
  * its printer never reads it (measured against 1.72.0-18-ga9dcca5 — the text
  * tree comes back either way), and a bridge that offered it would be advertising
  * an output format the command does not produce.
+ *
+ * The plan prints each step's implementation or the reason it is skipped, and
+ * the source of a hook; it does not print `RunOn`, so a hook declared
+ * `run_on: local` looks like a remote one. That is a property of the command's
+ * output, not something this bridge can add.
  */
 function deployArgv(subcommand: string, args: Record<string, unknown>): string[] {
   const argv = ['deploy', subcommand]
@@ -97,8 +102,9 @@ export function apply(ctx: Context, config: Config): void {
   ctx.tools.register(defineTool({
     name: 'govard_deploy_plan',
     description:
-      'Show the resolved Govard deploy plan for one remote — every task in order, its source and where it runs — '
-      + 'without connecting to the target. Read-only: nothing is executed and the host needs no ssh, rsync or Docker.',
+      'Show the resolved Govard deploy plan for one remote — every task in order with what it runs (or why this build '
+      + 'mode skips it), and the source of each hook — without connecting to the target. Read-only: nothing is executed '
+      + 'and the host needs no ssh, rsync or Docker.',
     parameters: {
       remote: { type: 'string', required: true, description: 'Remote from .govard.yml, e.g. "production". Required: govard resolves no default remote.' },
       build: { type: 'string', enum: ['auto', 'server', 'artifact'], description: 'Where the build runs: auto (default), server or artifact.' },
