@@ -1,4 +1,4 @@
-# dsh-maestro-govard bundle patch — three tool entries:
+# dsh-maestro-govard bundle patch — four tool entries:
 # each row loads one self-registering entry module (name/inject/apply).
 - insert:
     - id: dsh-maestro-govard
@@ -7,3 +7,5 @@
       name: '@ddtcorex/dsh-maestro-govard/lib/workspace-tool.js'
     - id: dsh-maestro-govard-audit-lint
       name: '@ddtcorex/dsh-maestro-govard/lib/audit-lint-tool.js'
+    - id: dsh-maestro-govard-deploy
+      name: '@ddtcorex/dsh-maestro-govard/lib/deploy-tool.js'
