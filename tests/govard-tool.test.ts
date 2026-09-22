@@ -93,7 +93,9 @@ describe('govard-tool', () => {
     // release and then silently asserts the wrong thing when it is forgotten.
     expect(String(j.version)).toMatch(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
     expect(j.dsh.bundle.patch).toBe('./cordis.patch.yml');
-    expect(j.peerDependencies['@deepseek-ai/cordis']).toBe('^4.0.1');
+    // Vendor ranges are tilde (upstream's workspace-release-ranges policy):
+    // assert the shape, not a literal that has to be edited every release.
+    expect(j.peerDependencies['@deepseek-ai/cordis']).toMatch(/^~4\.\d+\.\d+$/);
   });
 });
 
