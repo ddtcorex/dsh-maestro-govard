@@ -22,8 +22,6 @@ Part of the Maestro Harness suite (`dsh-maestro-*`). Cordis patch row id: `dsh-m
 
 ```sh
 dsh plugin --profile web add @ddtcorex/dsh-maestro-govard
-# or everything at once:
-dsh plugin --profile web add @ddtcorex/dsh-maestro-meta
 ```
 
 The Go binary is built separately in the `govard` repository (`make build`); this bridge
