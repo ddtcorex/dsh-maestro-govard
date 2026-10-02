@@ -5,9 +5,11 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-// The deploy surface a session may touch is deliberately the read-only half:
+// The deploy surface a session may touch is deliberately the non-mutating half:
 // `govard deploy plan` reads the project configuration and the recipe and never
-// connects, and `govard deploy check` connects over ssh but changes nothing.
+// connects, and `govard deploy check` connects over ssh and leaves nothing
+// behind: its `mv -T` probe creates a `.dep` scratch directory on the target and
+// removes it again, so the promise is about the end state, not "creates nothing".
 // `deploy`, `rollback` and `sandbox *` mutate a target — they stay in the
 // terminal, where an operator sees the window and the prompt.
 export const name = 'maestro-govard-deploy-tool'
@@ -189,8 +191,8 @@ export function apply(ctx: Context, config: Config): void {
     name: 'govard_deploy_check',
     description:
       'Run the Govard deploy preflight against one remote: connectivity, permissions, layout and the publish strategy '
-      + 'the target implies. Read-only — it connects over ssh (a missing capability is reported as CAPABILITY_MISSING) '
-      + 'but changes nothing on the target.',
+      + 'the target implies. It connects over ssh (a missing capability is reported as CAPABILITY_MISSING) and leaves '
+      + 'nothing behind on the target: its atomic-rename probe creates a scratch directory there and removes it again.',
     parameters: {
       remote: { type: 'string', required: true, description: 'Remote from .govard.yml, e.g. "production". Required: govard resolves no default remote.' },
       build: { type: 'string', enum: ['auto', 'server', 'artifact'], description: 'Where the build runs: auto (default), server or artifact.' },
