@@ -124,15 +124,19 @@ describe('deploy-tool registration', () => {
     expect(mod.inject).toEqual(['tools']);
   });
 
-  it('registers exactly the two read-only deploy tools', async () => {
+  it('registers exactly the two non-mutating deploy tools', async () => {
     const registered = await tools();
     expect([...registered.keys()].sort()).toEqual(['govard_deploy_check', 'govard_deploy_plan']);
   });
 
-  it('describes both tools as read-only', async () => {
+  it('describes the plan as read-only and the check by its end state', async () => {
     const registered = await tools();
     expect(registered.get('govard_deploy_plan')!.description).toContain('Read-only');
-    expect(registered.get('govard_deploy_check')!.description).toContain('Read-only');
+    // govard narrowed this claim in #468: the probe creates and removes a
+    // scratch directory, so "read-only" would promise more than the code does.
+    const check = registered.get('govard_deploy_check')!.description;
+    expect(check).not.toContain('Read-only');
+    expect(check).toContain('leaves nothing behind');
   });
 
   it('requires the remote, because govard resolves no default', async () => {
