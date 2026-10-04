@@ -88,7 +88,7 @@ export function apply(ctx: Context, config: Config): void {
     name: 'govard_shell',
     description: 'Run one non-interactive command inside the Govard-managed container (e.g. a test suite) and return its output.',
     parameters: {
-      command: { type: 'string', required: true, description: 'Shell command to run inside the container, e.g. "vendor/bin/phpunit".' },
+      command: { type: 'string', required: true, description: 'Shell command to run inside the container. PHPUnit in a Magento root: always scope it, "vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist --filter <Module>" or "vendor/bin/phpunit --no-coverage --bootstrap dev/tests/unit/framework/bootstrap.php app/code/<Vendor>/<Module>/Test/Unit". The root ships no phpunit.xml so the bare binary prints usage and exits 1; never run the full suite bare (core fixture conflicts), and capture status via ${PIPESTATUS[0]} when piping through tail.' },
     },
     output: {
       schema: { type: 'object', additionalProperties: false, properties: { text: { type: 'string', required: true } } },

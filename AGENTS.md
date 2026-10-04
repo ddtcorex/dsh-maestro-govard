@@ -44,6 +44,7 @@ pnpm build    # tsc  -> lib/
 - **Thin bridge only** — no Govard logic lives here. Delegate to the `govard` binary; do not re-implement commands, parsing, or framework detection.
 - **No hard-coded frameworks/branches** — use registry/profile detection (via the CLI), never `if framework === "magento"`.
 - Every subprocess spawn is a reversible effect (`ctx.effect(..., label)`); return disposers that kill children on teardown.
+- **`govard_audit_lint` inputs** — it accepts `worktreePath`, `scope`, `base` and `timeout` (plus `checks`, `mode`, `phpVersions`, `lintProvider`, `timeoutMs`); `defaultBase` and `allowXdebug` are tool config, not call arguments. The scope, base and renderer behaviour was ported from `dsh-maestro-review`; the capability-missing (exit code 3) handling stays govard's own.
 
 ## Validation
 
