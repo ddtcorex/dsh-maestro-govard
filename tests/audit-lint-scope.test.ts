@@ -104,3 +104,38 @@ describe('govard_audit_lint worktreePath', () => {
     expect(spawned).toHaveLength(0)
   })
 })
+
+describe('govard_audit_lint defaults', () => {
+  it('runs the exact default argument vector when no optional input is given', async () => {
+    const { apply } = await import('../src/host/audit-lint-tool.js')
+    const { r, ctx } = cap(); apply(ctx as never, { rootPath: '/tmp/root' })
+    await r[0].execute({}, exec('/tmp/root'))
+    expect(spawned[0].cmd).toBe('govard')
+    expect(spawned[0].args).toEqual([
+      'audit', 'run', '--checks', 'lint', '--format', 'json',
+      '--mode', 'auto', '--timeout', 'auto', '--lint-provider', 'govard',
+      '--error-json',
+    ])
+  })
+
+  it('arms the kill watchdog at 900000 ms by default', async () => {
+    const { apply } = await import('../src/host/audit-lint-tool.js')
+    const spy = vi.spyOn(globalThis, 'setTimeout')
+    const { r, ctx } = cap(); apply(ctx as never, { rootPath: '/tmp/root' })
+    await r[0].execute({}, exec('/tmp/root'))
+    expect(spy.mock.calls.some(c => c[1] === 900_000)).toBe(true)
+    spy.mockRestore()
+  })
+
+  it('accepts timeoutMs up to 1800000 and rejects outside 5000-1800000', async () => {
+    const { apply } = await import('../src/host/audit-lint-tool.js')
+    const { r, ctx } = cap(); apply(ctx as never, { rootPath: '/tmp/root' })
+    await r[0].execute({ timeoutMs: 1_800_000 }, exec('/tmp/root'))
+    expect(spawned).toHaveLength(1)
+    for (const bad of [1_800_001, 4_999]) {
+      const res = await r[0].execute({ timeoutMs: bad }, exec('/tmp/root')) as { errors: Array<{ code: string }> }
+      expect(res.errors[0].code).toBe('timeout_out_of_range')
+    }
+    expect(spawned).toHaveLength(1)
+  })
+})

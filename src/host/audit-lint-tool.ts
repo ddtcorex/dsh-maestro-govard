@@ -166,7 +166,8 @@ export function lintResultText(v: LintResultLike): string {
   return bits.join('\n')
 }
 // Govard 1.67 auto timeout: 90s-30m framework-aware (15m floor for wordpress/magento2 -> 22.5m auto).
-// Keep the kill timeout above the largest auto value so the outer watchdog does not cancel a valid auto run.
+// 900_000 ms (15 min) is the value ported from review. It is below the 22.5 min auto value for
+// wordpress/magento2; the CLI enforces its own --timeout deadline first, this is only the outer kill.
 const DEFAULT_TIMEOUT=900_000
 
 function run(cmd:string, args:string[], cwd:string, timeoutMs:number):Promise<{code:number|null, stdout:string, stderr:string, timedOut:boolean}>{
@@ -208,6 +209,8 @@ export function auditChecksArg(raw: unknown): string[] {
   return requested.length > 0 ? requested : ['lint']
 }
 
+// Retained as an exported helper for existing callers and tests; execute() now builds its argv
+// with buildAuditCliArgs (pinned by the default-vector test in audit-lint-scope.test.ts).
 // auditCliArgs builds the govard invocation. --error-json keeps a capability
 // failure machine-readable instead of leaving it in stderr for the caller.
 export function auditCliArgs(checks: string[]): string[] {
