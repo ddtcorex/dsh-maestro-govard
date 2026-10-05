@@ -5,3 +5,4 @@
 export * as GovardTool from './govard-tool.js';
 export * as WorkspaceTool from './workspace-tool.js';
 export * as DeployTool from './deploy-tool.js';
+export * as AuditLintTool from './audit-lint-tool.js';
